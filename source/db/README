@@ -1,0 +1,30 @@
+#
+# Add the following lines to 'pg_ident.conf' file:
+# 
+access		postgres		postgres
+access		root			postgres
+ms		ms_admin		ms_admin
+ms		root			ms_admin
+
+#
+# In the file 'pg_hba.conf' find 'local' type connection for user 'postgres' and add map paramter 
+#
+local   all             postgres                                peer map=access
+
+#
+# Add directives to allow access to our 'ms_db' database for user ms_admin 
+#
+local	ms_db		ms_admin				peer map=ms
+host	ms_db		ms_admin	0.0.0.0/0		md5
+
+#
+# Then create ROLE 'ms_admin' and DATABASE 'ms_db'
+#
+sudo psql -U postgres -f db.sql
+sudo psql -U ms_admin -d ms_db -f tables.sql
+
+#
+# Set postgresql listen on all interfaces in 'postgresql.conf'
+#
+
+listen_addresses = '0.0.0.0'

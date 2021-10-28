@@ -1,0 +1,13 @@
+#------------------------------------------------------------------------------#
+#                   OFFICIAL DEBIAN REPOS                    
+#------------------------------------------------------------------------------#
+
+###### Debian Main Repos
+deb http://ftp.ru.debian.org/debian/ bullseye main contrib non-free
+deb-src http://ftp.ru.debian.org/debian/ bullseye main contrib non-free
+
+deb http://ftp.ru.debian.org/debian/ bullseye-updates main contrib non-free
+deb-src http://ftp.ru.debian.org/debian/ bullseye-updates main contrib non-free
+
+deb http://security.debian.org/debian-security/ bullseye-security main
+deb-src http://security.debian.org/debian-security/ bullseye-security main
