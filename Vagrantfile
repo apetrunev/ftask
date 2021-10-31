@@ -23,6 +23,10 @@ class BasicProvision
   find /vagrant -mindepth 1 -maxdepth 1 -type f ! -name "*dbg*" -name "*.deb" -exec sudo apt-get -y install "{}" \;
   KERNELMAINLINE
 
+  @@passwd = <<-PASSWD
+  echo vagrant:123 | chpasswd
+  PASSWD
+
   @@installBasicPackages = <<-BASICPACKAGES
   apt-get -y install htop vim gawk tcpdump iptables ipset net-tools
   BASICPACKAGES
@@ -41,6 +45,10 @@ class BasicProvision
 
   def installKernel
     return @@installMainlineKernel
+  end
+
+  def setPassword
+    return @@passwd
   end
 
   def installPackages
@@ -73,9 +81,9 @@ Vagrant.configure("2") do |config|
     # Management network
     r.vm.network "private_network", ip: "192.168.56.2", name: "vboxnet0"
     # Intranet-1
-    r.vm.network "private_network", ip: "192.168.57.2", virtualbox__intnet: true
+    r.vm.network "private_network", ip: "192.168.57.1", virtualbox__intnet: true
     # Intranet-2
-    r.vm.network "private_network", ip: "192.168.58.2", virtualbox__intnet: true
+    r.vm.network "private_network", ip: "192.168.58.1", virtualbox__intnet: true
 
     r.vm.synced_folder "source", "/vagrant", type: "nfs", nfs_version: 3, nfs_udp: false
     
@@ -83,26 +91,37 @@ Vagrant.configure("2") do |config|
     r.vm.provision "pkg", type: "shell", inline: $basicProvision.installPackages
     r.vm.provision "timezone", type: "shell", inline: $basicProvision.setTimezone
     r.vm.provision "kernel config", type: "shell", inline: $basicProvision.saveKernelConfig
+    r.vm.provision "passwd", type: "shell", inline: $basicProvision.setPassword
+
     r.vm.provision "mainline kernel", type: "shell", run: "never", inline: $basicProvision.installKernel
 
-    r.vm.provision "router packages", type: "shell", inline: "apt-get -y install unbound"
+    r.vm.provision "routing", type: "shell" do |routing|
+      routing.inline = <<-'ROUTING'
+        sysctl -w net.ipv4.ip_forward=1
+        iptables -t nat -F
+	iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+        if [ "x$(ip -br l | cut -d' ' -f1 | grep -o dummy0)" != "xdummy0" ]; then
+          modprobe --first-time dummy
+          ip l add dummy0 type dummy
+        else
+          ip a flush dev dummy0 
+        fi
+        ip a add 192.168.254.1/24 brd + dev dummy0
+        ip l set up dev dummy0
+      ROUTING
+    end
 
-    r.vm.provision "settings", type: "shell" do |settings|
-      settings.inline = <<-SETTINGS
+    r.vm.provision "dns", type: "shell" do |dns|
+      dns.inline = <<-DNS
+	apt-get -y install unbound
+        systemctl stop unbound.service
         if test -d /etc/unbound; then cp -v /vagrant/router/root.hints /etc/unbound/; fi
         if test -d /etc/unbound; then cp -v /vagrant/router/unbound.conf /etc/unbound/; fi
         if test -n "$(command -v unbound-control)"; then 
           systemctl start unbound.service
-          unbound-control reload
+          #unbound-control reload
         fi
-      SETTINGS
-    end
-
-    r.vm.provision "routing", type: "shell" do |routing|
-      routing.inline = <<-'SERVICES'
-        sysctl -w net.ipv4.ip_forward=1
-	iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-      SERVICES
+      DNS
     end
   end
   #
@@ -114,7 +133,7 @@ Vagrant.configure("2") do |config|
     # Management network
     d.vm.network "private_network", ip: "192.168.56.3", name: "vboxnet0"
     # Intranet-2
-    d.vm.network "private_network", ip: "192.168.58.3", virtualbox__intnet: true
+    d.vm.network "private_network", ip: "192.168.57.3", virtualbox__intnet: true
  
     d.vm.provider "virtualbox" do |vb|
       if File.exist?(".vagrant/machines/db/virtualbox/id") then
@@ -152,7 +171,10 @@ Vagrant.configure("2") do |config|
     d.vm.provision "pkg", type: "shell", inline: $basicProvision.installPackages
     d.vm.provision "timezone", type: "shell", inline: $basicProvision.setTimezone
     d.vm.provision "kernel config", type: "shell", inline: $basicProvision.saveKernelConfig
+    d.vm.provision "passwd", type: "shell", inline: $basicProvision.setPassword
+
     d.vm.provision "mainline kernel", type: "shell", run: "never", inline: $basicProvision.installKernel
+    
     d.vm.provision "storage", type: "shell", run: "always" do |storage|
       storage.inline = <<-'STORAGE'
         apt-get update
@@ -163,9 +185,11 @@ Vagrant.configure("2") do |config|
         # LVM
         #
         if [ "x$(pvscan | grep -o /dev/sdb)" != "x/dev/sdb" ]; then
+          echo "Initialize physical volume on /dev/sdb"
           pvcreate /dev/sdb
         fi
         if [ "x$(pvscan | grep -o /dev/sdc)" != "x/dev/sdc" ]; then
+          echo "Initialize physical volume on /dev/sdc"
           pvcreate /dev/sdc
         fi
         if [ "x$(vgdisplay | awk '/VG Name/ { print $0 }' | grep -o vgfiles)" != "xvgfiles" ]; then
@@ -225,7 +249,23 @@ Vagrant.configure("2") do |config|
       pg.inline = <<-'POSTGRES'
         apt-get -y install postgresql
       POSTGRES
-    end   
+    end
+
+    d.vm.provision "routing", type: "shell" do |routing|
+      routing.inline = <<-'ROUTING'
+        echo "Change default route"
+        ip route change default via 192.168.57.1
+        echo "Set dns settings"
+        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
+          echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
+          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        resolvconf --enable-updates
+        resolvconf -u
+      ROUTING
+    end 
   end
   #
   # WEB
@@ -247,6 +287,8 @@ Vagrant.configure("2") do |config|
     w.vm.provision "pkg", type: "shell", inline: $basicProvision.installPackages
     w.vm.provision "timezone", type: "shell", inline: $basicProvision.setTimezone
     w.vm.provision "kernel config", type: "shell", inline: $basicProvision.saveKernelConfig
+    w.vm.provision "passwd", type: "shell", inline: $basicProvision.setPassword
+
     w.vm.provision "mainline kernel", type: "shell", run: "never", inline: $basicProvision.installKernel 
  
     w.vm.provision "web", type: "shell" do |web|
@@ -287,6 +329,21 @@ Vagrant.configure("2") do |config|
         fi  
         mkdir -vp /local/files
       WEB
-    end 
+    end
+    w.vm.provision "routing", type: "shell" do |routing|
+      routing.inline = <<-'ROUTING'
+        echo "Change default route"
+        ip route change default via 192.168.58.1
+        echo "Set dns settings"
+        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
+          echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
+          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        resolvconf --enable-updates
+        resolvconf -u
+      ROUTING
+    end
   end
 end
