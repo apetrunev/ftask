@@ -251,6 +251,19 @@ Vagrant.configure("2") do |config|
       POSTGRES
     end
 
+    d.vm.provision "script", type: "shell" do |s|
+      s.inline = <<-'SCRIPT'
+        if test -f /vagrant/db/script1.sh; then cp -v /vagrant/db/script1.sh /home/vagrant/; fi
+        if test -f /vagrant/db/script2.sh; then cp -v /vagrant/db/script2.sh /home/vagrant/; fi
+        if test -f /vagrant/db/script2.service; then
+          cp -v /vagrant/db/script2.service /etc/systemd/system/;
+          systemctl daemon-reload
+          systemctl enable script2.service
+          systemctl start script2.service
+        fi
+      SCRIPT
+    end 
+
     d.vm.provision "routing", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
         echo "Change default route"
