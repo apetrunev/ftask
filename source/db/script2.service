@@ -1,0 +1,14 @@
+[Unit]
+Description=Service file for /home/vagrant/script2.sh
+After=networking.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/vagrant
+ExecStart=
+ExecStart=/home/vagrant/script2.sh start
+ExecStop=/home/vagrant/script2.sh stop
+
+[Install]
+WantedBy=multi-user.target
