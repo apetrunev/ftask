@@ -1,9 +1,19 @@
 server {
   listen 80;
+  listen 8080;
   server_name web.local www.web.local;
 
   location / {
     include uwsgi_params;
     uwsgi_pass unix:/home/app_user/app/app.sock;
+  }
+
+  location /static {
+    allow all;
+    allow 192.168.57.3
+    allow 192.168.57.2
+    #deny all;
+    alias /local/scripts;
+    autoindex on;
   }
 }

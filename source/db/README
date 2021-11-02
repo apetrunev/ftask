@@ -5,6 +5,7 @@ access		postgres		postgres
 access		root			postgres
 ms		ms_admin		ms_admin
 ms		root			ms_admin
+ms		vagrant			ms_admin
 
 #
 # In the file 'pg_hba.conf' find 'local' type connection for user 'postgres' and add map paramter 

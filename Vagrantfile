@@ -121,6 +121,16 @@ Vagrant.configure("2") do |config|
           systemctl start unbound.service
           #unbound-control reload
         fi
+        echo "Set dns settings"
+        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
+          echo "nameserver 127.0.0.1" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
+          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        echo "Update /etc/resolv.conf configuration"
+        resolvconf --enable-updates
+        resolvconf -u
       DNS
     end
   end
@@ -253,6 +263,7 @@ Vagrant.configure("2") do |config|
 
     d.vm.provision "script", type: "shell" do |s|
       s.inline = <<-'SCRIPT'
+        apt-get -y install mailutils postfix
         if test -f /vagrant/db/script1.sh; then cp -v /vagrant/db/script1.sh /home/vagrant/; fi
         if test -f /vagrant/db/script2.sh; then cp -v /vagrant/db/script2.sh /home/vagrant/; fi
         if test -f /vagrant/db/script2.service; then
@@ -340,9 +351,24 @@ Vagrant.configure("2") do |config|
            echo "Configuration is ok. Restart nginx."
            systemctl restart nginx.service
         fi  
-        mkdir -vp /local/files
       WEB
     end
+
+    w.vm.provision "script", type: "shell" do |s|
+      s.inline = <<-'SCRIPT'
+        mkdir -vp /local/scripts
+        chown -vR app_user:www-data /local/scripts
+        if test -f /vagrant/web/script.py; then 
+          cp -v /vagrant/web/script.py /home/app_user/;
+          chown -vR app_user:www-data /home/app_user/script.py
+          su - app_user && (
+            pip install psycopg2-binary
+            echo '*/5 * * * * /home/app_user/script.py' | crontab -
+          )
+        fi
+      SCRIPT
+    end
+
     w.vm.provision "routing", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
         echo "Change default route"
