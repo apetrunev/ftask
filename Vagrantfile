@@ -299,7 +299,7 @@ Vagrant.configure("2") do |config|
     w.vm.hostname = "web.local"
     # Port forwarding
     w.vm.network "forwarded_port", guest: 5000, host: 5000
-    w.vm.network "forwarded_port", guest: 80, host: 8080
+    w.vm.network "forwarded_port", guest: 80, host: 80
     # Management network
     w.vm.network "private_network", ip: "192.168.56.4", name: "vboxnet0"
     # Intranet-2
