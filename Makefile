@@ -34,31 +34,30 @@ deps:
 	done
 
 .ONESHELL:
-kernel: 
+kernel: deps 
 	mkdir -p $(SOURCE_DIR)
 	if ! test -d $(SOURCE_DIR)/linux; then
 	  echo "Download mainline kernel source"
 	  cd $(SOURCE_DIR)/ && git clone $(KERNEL_SRC)
-	fi
+	else true; fi
 	if [ "$$(find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f -name "config-*-amd64" -print | wc -l)" -eq 0 ]; then
 	  echo "Kernel config file not found"
 	else
-	  # sort config files
-	  # at the top of the list is config for the newest debian kernel
-	  # use it for compiling mainline kernel
-	  cp -v $$(find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f -name "config-*-amd64" -print | tail -n1) $(SOURCE_DIR)/linux/.config
-	  cd $(SOURCE_DIR)/linux
-	  make mrproper
-	  make menuconfig
-	  make -j$$(nproc) deb-pkg
-	  touch $@
+	  if ! test -f $(SOURCE_DIR)/linux/.config; then 
+	    # sort config files
+	    # at the top of the list is config for the newest debian kernel
+	    # use it for compiling mainline kernel
+	    cp -v $$(find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f -name "config-*-amd64" -print | tail -n1) $(SOURCE_DIR)/linux/.config
+	    cd $(SOURCE_DIR)/linux
+	    make mrproper
+	    make menuconfig
+	    make -j$$(nproc) deb-pkg
+	    touch $@
+	  else
+	    echo "$(SOURCE_DIR)/linux/.config already exists"
+	  fi
 	fi 
 clean:
-	find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f \
-		-name "*.deb" -or \
-		-name "*.gz" -or \
-		-name "*.buildinfo" -or \
-		-name "*.changes" -or \
-		-name "*.dsc" -print
-	#$(RM) vms kernel 
+	find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f \( -name "*.deb" -or -name "*.gz" -or -name "*.buildinfo" -or -name "*.changes" -or -name "*.dsc" \) -print
+	$(RM) kernel 
 
