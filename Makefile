@@ -31,7 +31,18 @@ deps:
 	@for pkg in $(DEPS); do
 	  sudo apt-get -y install $$pkg
 	done
-
+#
+# Before compiling kernel we need to take several steps
+#
+# 1. First we change preemption model from desktop to server one (no forced preemption)
+# 	General Setup -> Preemption model -> No Forced Preemption
+# 2. For the sake of demonstration only we disable signature verification
+# 	Enable loadable module support -> Module signature verification
+# 3. Next step is also related to signature checking. Lets disable it also
+# 	Cryptographic API -> Certificates for signature checking -> Aditional X.509 keys for default system keyring (delete it)
+#
+# After these modifications the mainline kernel will compile without complaints
+#
 .ONESHELL:
 kernel: deps 
 	mkdir -p $(SOURCE_DIR)
