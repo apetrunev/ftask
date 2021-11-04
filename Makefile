@@ -26,6 +26,14 @@ ssh:
 		  ssh-copy-id vagrant@$(DB_ADDR) && \
 		  ssh-copy-id vagrant@$(WEB_ADDR))
 
+
+iface:
+	@echo "Create $(HOST_IFACE)"
+	@if [ "x$$(ip -4 -br addr | grep -o $(HOST_IFACE))" != "x$(HOST_IFACE)" ]; then \
+		VBoxManage hostonlyif create; \
+	else true; fi
+	touch $@
+
 deps:
 	@echo "Install dependencies: $(DEPS)"
 	@for pkg in $(DEPS); do
@@ -69,5 +77,5 @@ kernel: deps
 	fi 
 clean:
 	find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f \( -name "*.deb" -or -name "*.gz" -or -name "*.buildinfo" -or -name "*.changes" -or -name "*.dsc" \) -print
-	$(RM) kernel 
+	$(RM) kernel iface
 
