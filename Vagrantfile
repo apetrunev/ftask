@@ -299,7 +299,7 @@ Vagrant.configure("2") do |config|
     w.vm.hostname = "web.local"
     # Port forwarding
     w.vm.network "forwarded_port", guest: 5000, host: 5000
-    w.vm.network "forwarded_port", guest: 80, host: 80
+    w.vm.network "forwarded_port", guest: 80, host: 8080
     # Management network
     w.vm.network "private_network", ip: "192.168.56.4", name: "vboxnet0"
     # Intranet-2
@@ -361,10 +361,10 @@ Vagrant.configure("2") do |config|
         if test -f /vagrant/web/script.py; then 
           cp -v /vagrant/web/script.py /home/app_user/;
           chown -vR app_user:www-data /home/app_user/script.py
-          su - app_user && (
+          su - app_user -c /bin/bash -c "
             pip install psycopg2-binary
             echo '*/5 * * * * /home/app_user/script.py' | crontab -
-          )
+          "
         fi
       SCRIPT
     end
