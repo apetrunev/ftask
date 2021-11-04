@@ -17,7 +17,6 @@ all: help
 help:
 	@echo "make -- to show help"
 	@echo "make deps"
-	@echo "make vms"
 	@echo "make kernel"
 
 
