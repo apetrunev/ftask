@@ -331,6 +331,7 @@ Vagrant.configure("2") do |config|
       web.inline = <<-'WEB'
         apt-get -y install nginx
         apt-get -y install python3-pip python3-dev build-essential libssl-dev libffi-dev python3-setuptools python3-venv
+        apt-get -y install certbot python3-certbot-nginx
         if [ "x$(getent passwd app_user | cut -d: -f1 | grep -o app_user)" = "xapp_user" ]; then
           echo "User app_user already exists"
         else 
@@ -358,6 +359,9 @@ Vagrant.configure("2") do |config|
         if test -f /vagrant/web/app; then
           cp -v /vagrant/web/app /etc/nginx/sites-available/
           cd /etc/nginx/sites-enabled/ && ln -fvs ../sites-available/app
+          if ! test -d /etc/nginx/ssl; then
+            if test -d /vagrant/web/ssl; then cp -vR /vagrant/web/ssl /etc/nginx/; fi
+          fi
         fi
         if nginx -t; then
            echo "Configuration is ok. Restart nginx."
