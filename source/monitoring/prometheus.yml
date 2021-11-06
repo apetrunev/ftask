@@ -11,4 +11,4 @@ scrape_configs:
     static_configs:
       - targets: ['web.local:9100']
       - targets: ['router.local:9100']
-      - targets: ['db.loca:9100']
+      - targets: ['db.local:9100']
