@@ -28,7 +28,7 @@ class BasicProvision
   PASSWD
 
   @@installBasicPackages = <<-BASICPACKAGES
-  apt-get -y install htop vim gawk tcpdump iptables ipset net-tools
+  apt-get -y install htop vim make gawk tcpdump iptables ipset net-tools
   BASICPACKAGES
 
   def upgrade
@@ -95,7 +95,7 @@ Vagrant.configure("2") do |config|
 
     r.vm.provision "mainline kernel", type: "shell", run: "never", inline: $basicProvision.installKernel
 
-    r.vm.provision "routing", type: "shell" do |routing|
+    r.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
         sysctl -w net.ipv4.ip_forward=1
         iptables -t nat -F
@@ -111,7 +111,7 @@ Vagrant.configure("2") do |config|
       ROUTING
     end
 
-    r.vm.provision "dns", type: "shell" do |dns|
+    r.vm.provision "dns", run: "always", type: "shell" do |dns|
       dns.inline = <<-DNS
 	apt-get -y install unbound
         systemctl stop unbound.service
@@ -119,7 +119,6 @@ Vagrant.configure("2") do |config|
         if test -d /etc/unbound; then cp -v /vagrant/router/unbound.conf /etc/unbound/; fi
         if test -n "$(command -v unbound-control)"; then 
           systemctl start unbound.service
-          #unbound-control reload
         fi
         echo "Set dns settings"
         if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
@@ -132,6 +131,12 @@ Vagrant.configure("2") do |config|
         resolvconf --enable-updates
         resolvconf -u
       DNS
+    end
+ 
+    r.vm.provision "monitoring", type: "shell" do |m|
+     m.inline = <<-'MONITORING'
+       cd /vagrant/monitoring && make nexporter 
+     MONITORING
     end
   end
   #
@@ -275,7 +280,7 @@ Vagrant.configure("2") do |config|
       SCRIPT
     end 
 
-    d.vm.provision "routing", type: "shell" do |routing|
+    d.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
         echo "Change default route"
         ip route change default via 192.168.57.1
@@ -289,7 +294,13 @@ Vagrant.configure("2") do |config|
         resolvconf --enable-updates
         resolvconf -u
       ROUTING
-    end 
+    end
+ 
+    d.vm.provision "monitoring", type: "shell" do |m|
+     m.inline = <<-'MONITORING'
+       cd /vagrant/monitoring && make nexporter 
+     MONITORING
+    end
   end
   #
   # WEB
@@ -299,6 +310,7 @@ Vagrant.configure("2") do |config|
     w.vm.hostname = "web.local"
     # Port forwarding
     w.vm.network "forwarded_port", guest: 5000, host: 5000
+    w.vm.network "forwarded_port", guest: 3000, host: 3000
     w.vm.network "forwarded_port", guest: 80, host: 8080
     # Management network
     w.vm.network "private_network", ip: "192.168.56.4", name: "vboxnet0"
@@ -369,7 +381,7 @@ Vagrant.configure("2") do |config|
       SCRIPT
     end
 
-    w.vm.provision "routing", type: "shell" do |routing|
+    w.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
         echo "Change default route"
         ip route change default via 192.168.58.1
@@ -384,5 +396,14 @@ Vagrant.configure("2") do |config|
         resolvconf -u
       ROUTING
     end
+
+   w.vm.provision "monitoring", type: "shell" do |m|
+     m.inline = <<-'MONITORING'
+       cd /vagrant/monitoring && \
+       make nexporter && \
+       make prometheus && \
+       make grafana
+     MONITORING
+   end
   end
 end

@@ -10,10 +10,18 @@ server {
 
   location /static {
     allow all;
-    allow 192.168.57.3
-    allow 192.168.57.2
+    # router
+    allow 192.168.58.1;
+    # db
+    allow 192.168.57.3;
     #deny all;
     alias /local/scripts;
     autoindex on;
+  }
+ 
+  location /grafana {
+     proxy_pass         http://localhost:3000;
+     rewrite  ^/grafana/(.*)  /$1 break;
+     proxy_set_header   Host $host;
   }
 }

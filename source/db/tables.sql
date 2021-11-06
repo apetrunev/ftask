@@ -27,17 +27,20 @@ CREATE TABLE articles (
   CONSTRAINT fk_magazine
     FOREIGN KEY(magazine_id)
       REFERENCES magazines(id)
-      ON DELETE NO ACTION,
+      ON DELETE CASCADE
+      ON UPDATE CASCADE,
 
   CONSTRAINT fk_article_types
     FOREIGN KEY(article_types_id)
       REFERENCES article_types(id)
-      ON DELETE NO ACTION,
+      ON DELETE CASCADE
+      ON UPDATE CASCADE,
 
   CONSTRAINT fk_author
     FOREIGN KEY(author_id)
       REFERENCES author(id)
-      ON DELETE NO ACTION
+      ON DELETE CASCADE
+      ON UPDATE CASCADE
 );
 
 \copy author FROM 'author.csv';
