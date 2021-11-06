@@ -167,7 +167,7 @@
           "exemplar": true,
           "expr": "rate(node_disk_io_now{job=\"node_exporter\",instance=\"db.local:9100\"}[5m])",
           "interval": "",
-          "legendFormat": "Disk io total",
+          "legendFormat": "IO now {{device}}",
           "refId": "A"
         },
         {
@@ -175,7 +175,7 @@
           "expr": "rate(node_disk_read_time_seconds_total{instance=\"db.local:9100\"}[5m])",
           "hide": false,
           "interval": "",
-          "legendFormat": "Read-time sec total",
+          "legendFormat": "Read time sec total {{device}}",
           "refId": "B"
         },
         {
@@ -183,11 +183,11 @@
           "expr": "rate(node_disk_write_time_seconds_total{instance=\"db.local:9100\"}[5m])",
           "hide": false,
           "interval": "",
-          "legendFormat": "Write-time sec total",
+          "legendFormat": "Write time sec total {{device}}",
           "refId": "C"
         }
       ],
-      "title": "db.local io /dev/md0p1",
+      "title": "db.local io ",
       "type": "timeseries"
     },
     {
@@ -473,5 +473,5 @@
   "timezone": "Europe/Moscow",
   "title": "EPAM",
   "uid": "gyzkdjK7z",
-  "version": 9
+  "version": 10
 }
