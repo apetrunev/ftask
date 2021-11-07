@@ -122,7 +122,7 @@ Vagrant.configure("2") do |config|
         if test -d /etc/unbound; then cp -v /vagrant/router/root.hints /etc/unbound/; fi
         if test -d /etc/unbound; then cp -v /vagrant/router/unbound.conf /etc/unbound/; fi
         if test -n "$(command -v unbound-control)"; then 
-          systemctl start unbound.service
+          sleep 2 && systemctl start unbound.service
         fi
         echo "Set dns settings"
         if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
