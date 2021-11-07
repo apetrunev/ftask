@@ -38,6 +38,7 @@ iptables -P INPUT DROP
   
 iptables -P OUTPUT ACCEPT
 
+iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -o $vagrant_if -j ACCEPT
 iptables -A FORWARD -i $intranet1_if -s $intranet1_net -o $intranet2_if -d $intranet2_net -j ACCEPT
 iptables -A FORWARD -i $intranet2_if -s $intranet2_net -o $intranet1_if -d $intranet1_net -j ACCEPT
