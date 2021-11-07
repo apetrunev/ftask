@@ -97,9 +97,11 @@ Vagrant.configure("2") do |config|
 
     r.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
-        sysctl -w net.ipv4.ip_forward=1
-        iptables -t nat -F
-	iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+        if test -f /vagrant/router/firewall; then
+          echo "Enable firewall rules"
+          /vagrant/router/firewall
+          cp -v /vagrant/router/firewall /etc/network/if-pre-up.d/
+        fi
         if [ "x$(ip -br l | cut -d' ' -f1 | grep -o dummy0)" != "xdummy0" ]; then
           modprobe --first-time dummy
           ip l add dummy0 type dummy

@@ -1,0 +1,47 @@
+#!/bin/bash -x
+
+vagrant_if=eth0
+managed_if=eth1
+intranet1_if=eth2
+intranet2_if=eth3
+
+intranet1_net=192.168.57.0/24
+intranet2_net=192.168.58.0/24
+managed_net=192.168.56.0/24
+
+monitoring_addr=192.168.58.4
+
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD ACCEPT
+
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+# for dns requests from other networks
+iptables -A INPUT -i dummy0 -j ACCEPT
+iptables -A INPUT -i $vagrant_if -m conntrack --ctstate NEW,ESTABLISHED,RELATED -p tcp --dport 22 -j ACCEPT
+# allow dns access from trusted networks
+iptables -A INPUT -s $managed_net,$intranet1_net,$intranet2_net -p tcp --dport 53  -j ACCEPT
+iptables -A INPUT -s $managed_net,$intranet1_net,$intranet2_net -p udp --dport 53  -j ACCEPT
+# allow request to nodex_exporter
+iptables -A INPUT -s $monitoring_addr -p tcp --dport 9100 -i $intranet2_if -j ACCEPT
+# accept connections from host
+iptables -A INPUT -i $managed_if -s 192.168.56.1 -j ACCEPT
+iptables -A INPUT -p icmp -j ACCEPT
+iptables -P INPUT DROP
+  
+iptables -P OUTPUT ACCEPT
+
+iptables -A FORWARD -o $vagrant_if -j ACCEPT
+iptables -A FORWARD -i $intranet1_if -s $intranet1_net -o $intranet2_if -d $intranet2_net -j ACCEPT
+iptables -A FORWARD -i $intranet2_if -s $intranet2_net -o $intranet1_if -d $intranet1_net -j ACCEPT
+iptables -P FORWARD DROP
+# enable forwarding
+sysctl -w net.ipv4.ip_forward=1
+iptables -t nat -A POSTROUTING -o $vagrant_if -j MASQUERADE
