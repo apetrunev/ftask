@@ -98,9 +98,11 @@ Vagrant.configure("2") do |config|
     r.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
         if test -f /vagrant/router/firewall; then
-          echo "Enable firewall rules"
-          /vagrant/router/firewall
-          cp -v /vagrant/router/firewall /etc/network/if-pre-up.d/
+          if ! test -f /etc/network/if-pre-up.d/firewall; then
+            echo "Enable firewall rules"
+            /vagrant/router/firewall
+            cp -v /vagrant/router/firewall /etc/network/if-pre-up.d/
+          fi
         fi
         if [ "x$(ip -br l | cut -d' ' -f1 | grep -o dummy0)" != "xdummy0" ]; then
           modprobe --first-time dummy
@@ -284,6 +286,13 @@ Vagrant.configure("2") do |config|
 
     d.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
+        if test -f /vagrant/db/firewall; then
+          if ! test -f /etc/network/if-pre-up.d/firewall; then
+            echo "Enable firewall rules"
+            /vagrant/db/firewall
+            cp -v /vagrant/db/firewall /etc/network/if-pre-up.d/
+          fi
+        fi
         echo "Change default route"
         ip route change default via 192.168.57.1
         echo "Set dns settings"
@@ -389,6 +398,13 @@ Vagrant.configure("2") do |config|
 
     w.vm.provision "routing", run: "always", type: "shell" do |routing|
       routing.inline = <<-'ROUTING'
+        if test -f /vagrant/web/firewall; then
+          if ! test -f /etc/network/if-pre-up.d/firewall; then
+            echo "Enable firewall rules"
+            /vagrant/web/firewall
+            cp -v /vagrant/web/firewall /etc/network/if-pre-up.d/
+          fi
+        fi
         echo "Change default route"
         ip route change default via 192.168.58.1
         echo "Set dns settings"

@@ -1,0 +1,31 @@
+#!/bin/bash -x
+
+vagrant_if=eth0
+managed_if=eth1
+
+host=192.168.56.1
+web=192.168.58.4
+
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD ACCEPT
+
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -i $vagrant_if -m conntrack --ctstate NEW,ESTABLISHED,RELATED -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -s $host -m conntrack --ctstate NEW,ESTABLISHED,RELATED -p tcp --dport 5432 -j ACCEPT
+iptables -A INPUT -s $web -m conntrack --ctstate NEW,ESTABLISHED,RELATED -p tcp --dport 5432 -j ACCEPT
+iptables -A INPUT -s $web -m conntrack --ctstate NEW,ESTABLISHED,RELATED -p tcp --dport 9100 -j ACCEPT
+# accept connections from host
+iptables -A INPUT -i $managed_if -s $host -j ACCEPT
+iptables -A INPUT -p icmp -j ACCEPT
+iptables -P INPUT DROP
+  
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD DROP
