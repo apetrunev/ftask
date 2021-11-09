@@ -408,10 +408,10 @@ Vagrant.configure("2") do |config|
         echo "Change default route"
         ip route change default via 192.168.58.1
         echo "Set dns settings"
-        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
+        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
           echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
         fi
-        if [ "$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
+        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
           echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
         fi
         resolvconf --enable-updates
