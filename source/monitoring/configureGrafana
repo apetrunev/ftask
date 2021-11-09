@@ -20,7 +20,6 @@ TMP=$(mktemp --tmpdir grafana.ini.XXX)
 
 awk '
 /\[server\]/,/\[[^server]/ { 
-
 	if ($0 ~ /^protocol/) { printf("protocol = http\n"); next }
 	else if ($0 ~ /^http_port/) { printf("http_port = 3000\n"); next }
 	else if ($0 ~ /^domain/) { printf("domain = localhost\n"); next }
