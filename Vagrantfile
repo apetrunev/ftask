@@ -428,10 +428,13 @@ Vagrant.configure("2") do |config|
 
    w.vm.provision "monitoring", type: "shell" do |m|
      m.inline = <<-'MONITORING'
-       cd /vagrant/monitoring && \
-       make nexporter && \
-       make prometheus && \
-       make grafana
+       cd /vagrant/monitoring && (
+         make nexporter
+         make prometheus
+         make grafana
+         ./configureGrafana
+         systemctl restart grafana-server.service
+       )
      MONITORING
    end
   end
