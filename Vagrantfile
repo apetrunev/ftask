@@ -290,6 +290,13 @@ Vagrant.configure("2") do |config|
     d.vm.provision "postgres", type: "shell" do |pg|
       pg.inline = <<-'POSTGRES'
         apt-get -y install postgresql
+        cd /vagrant/db && (
+          ./configureDB pg_hba
+          ./configureDB pg_ident
+          ./configureDB postgresql
+          systemctl restart postgresql.service
+          ./configureDB db
+        )
       POSTGRES
     end
 
