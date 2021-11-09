@@ -1,0 +1,37 @@
+#!/bin/bash -x 
+
+GRAFANA_DIR=/etc/grafana
+
+if [ "x$(whoami)" != "xroot" ]; then
+  echo "Run this comand as 'root'"
+  exit 1
+fi
+
+if ! test -d $GRAFANA_DIR; then
+  echo "$GRAFANA_DIR does not exist"
+  exit 1
+fi
+
+if ! test -f $GRAFANA_DIR/grafana.ini.orig; then
+  cp -vp $GRAFANA_DIR/grafana.ini $GRAFANA_DIR/grafana.ini.orig
+fi
+
+TMP=$(mktemp --tmpdir grafana.ini.XXX)
+
+awk '
+/\[server\]/,/\[[^server]/ { 
+
+	if ($0 ~ /^protocol/) { printf("protocol = http\n"); next }
+	else if ($0 ~ /^http_port/) { printf("http_port = 3000\n"); next }
+	else if ($0 ~ /^domain/) { printf("domain = localhost\n"); next }
+	else if ($0 ~ /^root_url/) { printf("root_url = \%(protocol)s://\%(domain)s:\%(http_port)s/grafana\n"); next }
+	else if ($0 ~ /^serve_from_sub_path/) { printf("serve_from_sub_path = true\n"); next }
+	else { print; next } 
+}
+{ print } 
+' $GRAFANA_DIR/grafana.ini > $TMP
+
+if test -f $TMP; then 
+  cp -v $TMP $GRAFANA_DIR/grafana.ini
+  rm -v $TMP
+fi
