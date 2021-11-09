@@ -1,0 +1,163 @@
+#!/bin/bash -x
+
+CUR_DIR=$(pwd)
+PG_DIR=/etc/postgresql/13/main
+
+if [ "x$(whoami)" != "xroot" ]; then
+  echo "Run this comand as 'root'"
+  exit 1
+fi
+
+if ! test -d $PG_DIR; then
+  echo "error: $PG_DIR does not exist"
+  exit 1
+fi
+
+case $1 in 
+pg_hba)
+  if ! test -f $PG_DIR/pg_hba.conf.orig; then cp -vp $PG_DIR/pg_hba.conf $PG_DIR/pg_hba.conf.orig; fi
+
+  #
+  # This script adds the following strings to pg_hba.conf file
+  #
+  # local   all           postgres                                peer map=access
+  #
+  # local	ms_db		ms_admin				peer map=ms
+  # host	ms_db		ms_admin	0.0.0.0/0		md5
+  #
+
+  TMP=$(mktemp --tmpdir pg_hba.conf.XXX)
+
+  awk '
+  BEGIN {
+    C_PRINT = 1
+    C_SKIP = 2
+    cond = C_PRINT
+  }
+  /Put your actual configuration here/,$0 ~ /DO NOT DISABLE!/ { 
+  	if ($0 ~ /^#/) {
+  		if ($0 ~ /DO NOT DISABLE!/) print
+  		if (cond == C_SKIP) { 
+  			next
+  		} else { 
+  			print
+  			next 
+  		}
+  	} else if ($0 ~ /^$/) {
+  	        /* first  empty line is a place for our configuration */
+                  if (cond == C_PRINT) {
+  			print
+  			printf("local\tms_db\t\tms_admin\t\t\t\tpeer map=ms\n")
+  			printf("host\tms_db\t\tms_admin\t\t0.0.0.0/0\tmd5\n")
+ 			print
+			/* skip everything else until the end of the range */
+			cond = C_SKIP
+		}	
+		next
+  	} else { next }
+  }
+  {
+  	/* add map parameter to this entry */
+  	if ($1 == "local" && $2 == "all" && $3 == "postgres" && $4 == "peer"){
+  		$5 = "map=access"
+ 		printf("\n%s\t%s\t\t%s\t\t\t\t%s %s\n", $1, $2, $3, $4, $5)
+	} else {
+		/* print other entries as is */
+		print
+	}	
+  } 
+  ' /etc/postgresql/13/main/pg_hba.conf > $TMP
+
+  if test -f $TMP; then cp -v $TMP $PG_DIR/pg_hba.conf; rm -v $TMP; fi
+  ;;
+pg_ident)
+  if ! test -f $PG_DIR/pg_ident.conf.orig; then cp -vp $PG_DIR/pg_ident.conf $PG_DIR/pg_ident.conf.orig; fi
+  #
+  # Put the following mappings to pg_ident.conf
+  #
+  #  access		postgres		postgres
+  #  access		root			postgres
+  #  ms			ms_admin		ms_admin
+  #  ms			root			ms_admin
+  #  ms			vagrant			ms_admin
+  #
+  TMP=$(mktemp --tmpdir pg_ident.conf.XXX)
+
+  awk '
+  BEGIN { 
+  	C_PRINT = 1
+	C_SKIP = 2
+	cond = C_PRINT
+  }
+  /Put your actual configuration here/, /MAPNAME SYSTEM-USERNAME PG-USERNAME/ {
+  	if ($0 ~ /Put your actual configuration here/ ||
+	    $0 ~ /MAPNAME[[:space:]]+SYSTEM-USERNAME[[:space:]]+PG-USERNAME/)
+	{ 
+		    print
+		    next
+	} else if ($0 ~ /^#/){
+		if (cond == C_SKIP) { 
+  			next
+  		} else { 
+  			print
+  			next 
+  		}
+	} else if ($0 ~ /^$/) {
+       		if (cond == C_PRINT) {
+			print
+			printf("access\tpostgres\t\tpostgres\n")
+			printf("access\troot\t\tpostgres\n")
+			printf("ms\tms_admin\t\tms_admin\n")
+			printf("ms\troot\t\tms_admin\n")
+			printf("ms\tvagrant\t\tms_admin\n")
+			print
+			cond = C_SKIP
+			next
+		} else { next }
+	} else {
+		next
+	}
+  }
+  { 
+  	if ($0 ~ /^$/ || $0 ~ /^#/) {
+		print
+	} else {
+		/* skip mappings if they exists */
+		next 
+	}
+  }
+  ' $PG_DIR/pg_ident.conf > $TMP
+  if test -f $TMP; then cp -v $TMP $PG_DIR/pg_ident.conf; rm -v $TMP; fi
+  ;;
+postgresql)
+  if ! test -f $PG_DIR/postgresql.conf; then cp -vp $PG_DIR/postgresql.conf $PG_DIR/postgresql.conf.orig; fi
+  
+  TMP=$(mktemp --tmpdir postgresql.conf.XXX)
+
+  awk '
+  /listen_addresses/ {
+  	printf("listen_addresses = '\''0.0.0.0'\''\n")
+	next
+  }
+  { print }' < $PG_DIR/postgresql.conf > $TMP
+
+  if test -f $TMP; then cp -v $TMP $PG_DIR/postgresql.conf; rm -v $TMP; fi
+  ;;
+db)
+  if ! test -f $CUR_DIR/db.sql; then
+    echo "error: $CUR_DIR/db.sql not found"
+    exit 1
+  fi
+
+  if ! test -f $CUR_DIR/tables.sql; then
+    echo "error: $CUR_DIR/tables.sql not found"
+    exit 1
+  fi
+  psql -U postgres -f $CUR_DIR/db.sql
+  psql -U ms_admin -d ms_db -f $CUR_DIR/tables.sql
+  ;;
+*)
+  echo "error: unknown option: $1"
+  exit 1
+  ;;
+esac
