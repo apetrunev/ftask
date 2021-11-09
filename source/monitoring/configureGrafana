@@ -21,10 +21,10 @@ TMP=$(mktemp --tmpdir grafana.ini.XXX)
 awk '
 /\[server\]/,/\[[^server]/ { 
 	if ($0 ~ /^protocol/) { printf("protocol = http\n"); next }
-	else if ($0 ~ /^http_port/) { printf("http_port = 3000\n"); next }
-	else if ($0 ~ /^domain/) { printf("domain = localhost\n"); next }
-	else if ($0 ~ /^root_url/) { printf("root_url = \%(protocol)s://\%(domain)s:\%(http_port)s/grafana\n"); next }
-	else if ($0 ~ /^serve_from_sub_path/) { printf("serve_from_sub_path = true\n"); next }
+	else if ($0 ~ /^[;]?http_port/) { printf("http_port = 3000\n"); next }
+	else if ($0 ~ /^[;]?domain/) { printf("domain = localhost\n"); next }
+	else if ($0 ~ /^[;]?root_url/) { printf("root_url = \%(protocol)s://\%(domain)s:\%(http_port)s/grafana\n"); next }
+	else if ($0 ~ /^[;]?serve_from_sub_path/) { printf("serve_from_sub_path = true\n"); next }
 	else { print; next } 
 }
 { print } 
