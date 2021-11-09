@@ -194,6 +194,29 @@ Vagrant.configure("2") do |config|
 
     d.vm.provision "mainline kernel", type: "shell", run: "never", inline: $basicProvision.installKernel
     
+    d.vm.provision "routing", run: "always", type: "shell" do |routing|
+      routing.inline = <<-'ROUTING'
+        if test -f /vagrant/db/firewall; then
+          if ! test -f /etc/network/if-pre-up.d/firewall; then
+            echo "Enable firewall rules"
+            /vagrant/db/firewall
+            cp -v /vagrant/db/firewall /etc/network/if-pre-up.d/
+          fi
+        fi
+        echo "Change default route"
+        ip route change default via 192.168.57.1
+        echo "Set dns settings"
+        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
+          echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
+          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        resolvconf --enable-updates
+        resolvconf -u
+      ROUTING
+    end
+ 
     d.vm.provision "storage", type: "shell", run: "always" do |storage|
       storage.inline = <<-'STORAGE'
         apt-get update
@@ -284,29 +307,6 @@ Vagrant.configure("2") do |config|
       SCRIPT
     end 
 
-    d.vm.provision "routing", run: "always", type: "shell" do |routing|
-      routing.inline = <<-'ROUTING'
-        if test -f /vagrant/db/firewall; then
-          if ! test -f /etc/network/if-pre-up.d/firewall; then
-            echo "Enable firewall rules"
-            /vagrant/db/firewall
-            cp -v /vagrant/db/firewall /etc/network/if-pre-up.d/
-          fi
-        fi
-        echo "Change default route"
-        ip route change default via 192.168.57.1
-        echo "Set dns settings"
-        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
-          echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
-        fi
-        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
-          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
-        fi
-        resolvconf --enable-updates
-        resolvconf -u
-      ROUTING
-    end
- 
     d.vm.provision "monitoring", type: "shell" do |m|
      m.inline = <<-'MONITORING'
        cd /vagrant/monitoring && make nexporter 
@@ -337,6 +337,29 @@ Vagrant.configure("2") do |config|
     w.vm.provision "passwd", type: "shell", inline: $basicProvision.setPassword
 
     w.vm.provision "mainline kernel", type: "shell", run: "never", inline: $basicProvision.installKernel 
+ 
+    w.vm.provision "routing", run: "always", type: "shell" do |routing|
+      routing.inline = <<-'ROUTING'
+        if test -f /vagrant/web/firewall; then
+          if ! test -f /etc/network/if-pre-up.d/firewall; then
+            echo "Enable firewall rules"
+            /vagrant/web/firewall
+            cp -v /vagrant/web/firewall /etc/network/if-pre-up.d/
+          fi
+        fi
+        echo "Change default route"
+        ip route change default via 192.168.58.1
+        echo "Set dns settings"
+        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
+          echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
+          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
+        fi
+        resolvconf --enable-updates
+        resolvconf -u
+      ROUTING
+    end   
  
     w.vm.provision "web", type: "shell" do |web|
       web.inline = <<-'WEB'
@@ -394,29 +417,6 @@ Vagrant.configure("2") do |config|
           "
         fi
       SCRIPT
-    end
-
-    w.vm.provision "routing", run: "always", type: "shell" do |routing|
-      routing.inline = <<-'ROUTING'
-        if test -f /vagrant/web/firewall; then
-          if ! test -f /etc/network/if-pre-up.d/firewall; then
-            echo "Enable firewall rules"
-            /vagrant/web/firewall
-            cp -v /vagrant/web/firewall /etc/network/if-pre-up.d/
-          fi
-        fi
-        echo "Change default route"
-        ip route change default via 192.168.58.1
-        echo "Set dns settings"
-        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o nameserver)" != "xnameserver" ]; then
-          echo "nameserver 192.168.254.1" >> /etc/resolvconf/resolv.conf.d/head 
-        fi
-        if [ "x$(cat /etc/resolvconf/resolv.conf.d/head | sed '/^#/d' | grep -o search)" != "xsearch" ]; then
-          echo "search local" >> /etc/resolvconf/resolv.conf.d/head 
-        fi
-        resolvconf --enable-updates
-        resolvconf -u
-      ROUTING
     end
 
    w.vm.provision "monitoring", type: "shell" do |m|
