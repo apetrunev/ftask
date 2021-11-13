@@ -21,6 +21,7 @@ iptables -P INPUT ACCEPT
 iptables -P OUTPUT ACCEPT
 iptables -P FORWARD ACCEPT
 
+iptables -A INPUT -m state --state INVALID -j DROP
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
 # for dns requests from other networks
@@ -35,17 +36,16 @@ iptables -A INPUT -s $monitoring_addr -p tcp --dport 9100 -i $intranet2_if -j AC
 iptables -A INPUT -i $managed_if -s 192.168.56.1 -j ACCEPT
 iptables -A INPUT -p icmp -j ACCEPT
 iptables -A INPUT -j LOG --log-prefix "INPUT:DROP:" --log-level 6
-iptables -A INPUT -j DROP
 iptables -P INPUT DROP
   
 iptables -P OUTPUT ACCEPT
 
+iptables -A FORWARD -m state --state INVALID -j DROP
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -o $vagrant_if -j ACCEPT
 iptables -A FORWARD -i $intranet1_if -s $intranet1_net -o $intranet2_if -d $intranet2_net -j ACCEPT
 iptables -A FORWARD -i $intranet2_if -s $intranet2_net -o $intranet1_if -d $intranet1_net -j ACCEPT
 iptables -A FORWARD -j LOG --log-prefix "FORWARD:DROP:" --log-level 6
-iptables -A FORWARD -j DROP
 iptables -P FORWARD DROP
 # enable forwarding
 sysctl -w net.ipv4.ip_forward=1
