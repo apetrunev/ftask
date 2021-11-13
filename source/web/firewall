@@ -22,6 +22,7 @@ iptables -A INPUT -m conntrack --ctstate NEW,ESTABLISHED,RELATED -p tcp --match 
 # accept connections from host
 iptables -A INPUT -i $managed_if -s $host -j ACCEPT
 iptables -A INPUT -p icmp -j ACCEPT
+iptables -A INPUT -j LOG --log-prefix "INPUT:DROP:" --log-level 6
 iptables -P INPUT DROP
   
 iptables -P OUTPUT ACCEPT
