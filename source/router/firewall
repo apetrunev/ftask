@@ -38,8 +38,6 @@ iptables -A INPUT -p icmp -j ACCEPT
 iptables -A INPUT -j LOG --log-prefix "INPUT:DROP:" --log-level 6
 iptables -P INPUT DROP
   
-iptables -P OUTPUT ACCEPT
-
 iptables -A FORWARD -m state --state INVALID -j DROP
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -o $vagrant_if -j ACCEPT
