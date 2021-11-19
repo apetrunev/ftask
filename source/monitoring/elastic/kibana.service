@@ -1,0 +1,12 @@
+[Unit]
+Description=Kibana service
+After=network-online.target
+
+[Service]
+Type=exec
+User=kibana
+Environment=CONFIG_PATH=/opt/kibana/config/kibana.yml
+ExecStart=/opt/kibana/bin/kibana
+
+[Install]
+WantedBy=multi-user.target
