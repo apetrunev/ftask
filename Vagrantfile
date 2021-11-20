@@ -78,12 +78,18 @@ Vagrant.configure("2") do |config|
   config.vm.define "router" do |r|
     r.vm.box = "generic/debian11"
     r.vm.hostname = "router.local"
+    r.vm.provider :virtualbox
+    r.vm.box_version = "3.4.2"
     # Management network
     r.vm.network "private_network", ip: "192.168.56.2", name: "vboxnet0"
     # Intranet-1
     r.vm.network "private_network", ip: "192.168.57.1", virtualbox__intnet: true
     # Intranet-2
     r.vm.network "private_network", ip: "192.168.58.1", virtualbox__intnet: true
+
+    r.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end 
 
     r.vm.synced_folder "source", "/vagrant", type: "nfs", nfs_version: 3, nfs_udp: false
     
@@ -149,12 +155,16 @@ Vagrant.configure("2") do |config|
   config.vm.define "db" do |d|
     d.vm.box = "generic/debian11"
     d.vm.hostname = "db.local"
+    d.vm.provider :virtualbox
+    d.vm.box_version = "3.4.2"
+    
     # Management network
     d.vm.network "private_network", ip: "192.168.56.3", name: "vboxnet0"
     # Intranet-2
     d.vm.network "private_network", ip: "192.168.57.3", virtualbox__intnet: true
  
     d.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
       if File.exist?(".vagrant/machines/db/virtualbox/id") then
         id = File.read(".vagrant/machines/db/virtualbox/id")
         ret = IO.popen("VBoxManage showvminfo #{id} --machinereadable | grep 'SATA Controller'", "r")
@@ -182,7 +192,7 @@ Vagrant.configure("2") do |config|
         end
  
       end
-    end 
+    end	
 
     d.vm.synced_folder "source", "/vagrant", type: "nfs", nfs_version: 3, nfs_udp: false
      
@@ -326,6 +336,8 @@ Vagrant.configure("2") do |config|
   config.vm.define "web" do |w|
     w.vm.box = "generic/debian11"
     w.vm.hostname = "web.local"
+    w.vm.provider :virtualbox
+    w.vm.box_version = "3.4.2"
     # Port forwarding
     w.vm.network "forwarded_port", guest: 5000, host: 5000
     w.vm.network "forwarded_port", guest: 3000, host: 3000
@@ -334,7 +346,11 @@ Vagrant.configure("2") do |config|
     w.vm.network "private_network", ip: "192.168.56.4", name: "vboxnet0"
     # Intranet-2
     w.vm.network "private_network", ip: "192.168.58.4", virtualbox__intnet: true
-     
+    
+    w.vm.provider "virtualbox" do |vb|
+      vb.memory = "2048"
+    end  
+
     w.vm.synced_folder "source", "/vagrant", type: "nfs", nfs_version: 3, nfs_udp: false
      
     w.vm.provision "upgrade", type: "shell", inline: $basicProvision.upgrade
@@ -434,6 +450,12 @@ Vagrant.configure("2") do |config|
          make grafana
          ./configureGrafana
          systemctl restart grafana-server.service
+       )
+  
+       cd /vagrant/monitoring/elastic && (
+         make elasticsearch
+         make kibana
+         make filebeat
        )
      MONITORING
    end

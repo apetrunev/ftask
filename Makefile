@@ -8,7 +8,7 @@ WEB_ADDR :=192.168.56.4
 
 HOST_IFACE := vboxnet0
 
-KERNEL_SRC := git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+KERNEL_SRC := git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 
 .PHONY: all clean
 
@@ -19,18 +19,16 @@ help:
 	@echo "make deps"
 	@echo "make kernel"
 
-
 ssh:
-	cd ~/ && (ssh-keygen && \
-		  ssh-copy-id vagrant@$(ROUTER_ADDR) && \
-		  ssh-copy-id vagrant@$(DB_ADDR) && \
-		  ssh-copy-id vagrant@$(WEB_ADDR))
-
+	cd ~/ && ssh-keygen
+	ssh-copy-id -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$(ROUTER_ADDR)
+	ssh-copy-id -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$(DB_ADDR)
+	ssh-copy-id -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$(WEB_ADDR)
 
 iface:
 	@echo "Create $(HOST_IFACE)"
 	@if [ "x$$(ip -4 -br addr | grep -o $(HOST_IFACE))" != "x$(HOST_IFACE)" ]; then \
-		VBoxManage hostonlyif create; \
+	  VBoxManage hostonlyif create; \
 	else true; fi
 	touch $@
 
@@ -61,19 +59,15 @@ kernel: deps
 	if [ "$$(find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f -name "config-*-amd64" -print | wc -l)" -eq 0 ]; then
 	  echo "Kernel config file not found"
 	else
-	  if ! test -f $(SOURCE_DIR)/linux/.config; then 
-	    # sort config files
-	    # at the top of the list is config for the newest debian kernel
-	    # use it for compiling mainline kernel
-	    cp -v $$(find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f -name "config-*-amd64" -print | tail -n1) $(SOURCE_DIR)/linux/.config
-	    cd $(SOURCE_DIR)/linux
-	    make mrproper
-	    make menuconfig
-	    make -j$$(nproc) deb-pkg
-	    touch $@
-	  else
-	    echo "$(SOURCE_DIR)/linux/.config already exists"
-	  fi
+	  # sort config files
+	  # at the top of the list is config for the newest debian kernel
+	  # use it for compiling mainline kernel
+	  cp -v $$(find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f -name "config-*-amd64" -print | tail -n1) $(SOURCE_DIR)/linux/.config
+	  cd $(SOURCE_DIR)/linux
+	  make mrproper
+	  make menuconfig
+	  make -j$$(nproc) deb-pkg
+	  touch $@
 	fi 
 clean:
 	find $(SOURCE_DIR)/ -mindepth 1 -maxdepth 1 -type f \( -name "*.deb" -or -name "*.gz" -or -name "*.buildinfo" -or -name "*.changes" -or -name "*.dsc" \) -print
