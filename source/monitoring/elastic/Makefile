@@ -107,6 +107,7 @@ kibana:
 	  rm -v $(TMP); \
 	  cp -v $(CUR_DIR)/kibana.service /etc/systemd/system/; \
 	  systemctl daemon-reload; \
+	  systemctl enable kibana.service; \
 	  systemctl restart kibana.service; \
 	else \
 	  echo "warn: Kibana already installed"; \
