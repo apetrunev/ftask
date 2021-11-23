@@ -116,7 +116,7 @@ kibana:
 filebeat:
 	cd /tmp && wget $(FILEBEAT_LINK)
 	apt-get -y install /tmp/$(FILEBEAT_PKG)
-	if ! -f test /etc/filebeat/filebeat.yml.orig; then \
+	if ! test -f /etc/filebeat/filebeat.yml.orig; then \
 	  cp -vp /etc/filebeat/filebeat.yml /etc/filebeat/filebeat.yml.orig; \
 	fi
 	$(eval TMP := $(shell mktemp --tmpdir filebeat.yml.XXX))
